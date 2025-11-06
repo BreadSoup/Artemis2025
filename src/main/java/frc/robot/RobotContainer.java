@@ -13,12 +13,24 @@ import edu.wpi.first.math.trajectory.TrapezoidProfile.Constraints;
 import edu.wpi.first.math.util.Units;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.Filesystem;
+import edu.wpi.first.wpilibj.GenericHID;
 import edu.wpi.first.wpilibj.RobotBase;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.robot.Constants.OperatorConstants;
+import frc.robot.commands.intake.IntakeFullStopCommand;
+import frc.robot.commands.intake.LowerIntakeCommand;
+import frc.robot.commands.intake.PurgeIntakeCommand;
+import frc.robot.commands.intake.RaiseIntakeCommand;
+import frc.robot.commands.intake.ResetIntakeCommand;
+import frc.robot.commands.intake.RunIntakeCommand;
+import frc.robot.commands.shooter.FeedCommand;
+import frc.robot.commands.shooter.ShooterCommand;
+import frc.robot.subsystems.IndexerSubsystem;
+import frc.robot.subsystems.IntakeSubsystem;
+import frc.robot.subsystems.ShooterSubsystem;
 import frc.robot.subsystems.swervedrive.SwerveSubsystem;
 import java.io.File;
 import swervelib.SwerveInputStream;
@@ -31,8 +43,12 @@ import swervelib.SwerveInputStream;
 public class RobotContainer
 {
 
+   private final IntakeSubsystem m_Intake = new IntakeSubsystem();
+  private final IndexerSubsystem m_Indexer = new IndexerSubsystem();
+  private final ShooterSubsystem m_Shooter = new ShooterSubsystem();
+
   // Replace with CommandPS4Controller or CommandJoystick if needed
-  final         CommandXboxController driverXbox = new CommandXboxController(0);
+  public final         CommandXboxController driverXbox = new CommandXboxController(0);
   // The robot's subsystems and commands are defined here...
   private final SwerveSubsystem       drivebase  = new SwerveSubsystem(new File(Filesystem.getDeployDirectory(),
                                                                                 "swerve"));
@@ -99,6 +115,13 @@ public class RobotContainer
     configureBindings();
     DriverStation.silenceJoystickConnectionWarning(true);
     NamedCommands.registerCommand("test", Commands.print("I EXIST"));
+    driverXbox.y().onTrue(new LowerIntakeCommand(m_Intake));
+    driverXbox.rightBumper().whileTrue(new RunIntakeCommand(m_Intake, m_Indexer));
+    driverXbox.b().whileTrue(new FeedCommand(m_Indexer));
+    driverXbox.x().whileTrue(new ResetIntakeCommand(m_Intake));
+    driverXbox.a().onTrue(new IntakeFullStopCommand(m_Intake));
+    driverXbox.leftBumper().whileTrue(new PurgeIntakeCommand(m_Intake, m_Indexer));
+    driverXbox.leftTrigger().whileTrue(new ShooterCommand(m_Shooter));
   }
 
   /**
@@ -189,5 +212,9 @@ public class RobotContainer
   public void setMotorBrake(boolean brake)
   {
     drivebase.setMotorBrake(brake);
+  }
+
+  public void setControllerRumble(double number){ //doesnt work
+    driverXbox.setRumble(GenericHID.RumbleType.kRightRumble, number);
   }
 }
